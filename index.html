@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+    </head>
+    <body style="background: gray;">
+        <input type="number" value="0" id="ejes" style="margin-bottom: 10px"> <!-- min="2" -->
+        
+        <script>
+            function setup() {
+                widht = windowWidth*0.95;
+                height = windowHeight*0.9;
+                createCanvas(widht, height);
+            }
+
+            function draw() {
+                background(220);
+
+                text("Punto Pendiente", 255, height/2 - 110);
+                dibujarCirculo(300, height/2, 100, 1);
+                text("Bresenham", 570, height/2 - 110);
+                dibujarCirculo(600, height/2, 100, 2);
+                text("DDA", 890, height/2 - 110);
+                dibujarCirculo(900, height/2, 100, 3);
+            }
+
+            function dibujarCirculo(xc, yc, r, type) {
+                var ejes = document.getElementById("ejes").value;
+                var lineaDireccion = 360 / ejes;
+                var x = 0;
+                var y = r;
+                var p = 1 - r;
+
+                while (x <= y) {
+                 trazadoDePuntos(xc, yc, x, y);
+                    x++;
+
+                    if (p < 0) {
+                    p += 2 * x + 1;
+                    } else {
+                    y--;
+                    p += 2 * (x - y) + 1;
+                    }
+                }
+
+                if(ejes < 2){
+                    ejes = 0;
+                }
+
+                for (var index = 1; index <= ejes; index++) {
+                    var radianes = (lineaDireccion*index) * PI / 180;
+                    xc = Math.round(xc);
+                    yc = Math.round(yc);
+                    var xc2 = Math.round(xc + r * Math.cos(radianes));
+                    var yc2 = Math.round(yc + r * Math.sin(radianes));
+
+                    if(type == 1){
+                        puntoPendiente(xc, yc, xc2, yc2);
+                    } 
+                    
+                    if (type == 2){
+                        bresenham(xc, yc, xc2, yc2);
+                    }
+
+                    if (type == 3){
+                        DDA(xc, yc, xc2, yc2);
+                    }
+                }
+            }
+
+                function puntoPendiente(xc, yc, xc2, yc2){
+                    if (xc == xc2) {
+                        var inicioy = Math.min(yc, yc2);
+                        var finy = Math.max(yc, yc2);
+                        for (var y = inicioy; y <= finy; y++) {
+                            point(xc, y);
+                        }
+                    } else {
+                        var m = (yc2 - yc) / (xc2 - xc);
+                        var b = yc - m * xc;
+                        var iniciox = Math.min(xc, xc2);
+                        var finx = Math.max(xc, xc2);
+                        for (var x = iniciox; x <= finx; x++) {
+                        var y = m * x + b;
+                        point(x, y);
+                        }
+                    }
+                }
+
+                function bresenham(xc, yc, xc2, yc2) {
+                    var dx = Math.abs(xc2 - xc);
+                    var dy = Math.abs(yc2 - yc);
+                    var sx = (xc < xc2) ? 1 : -1;
+                    var sy = (yc < yc2) ? 1 : -1;
+                    var error = dx - dy;
+
+                    while (true) {
+                        point(xc, yc);
+                        var error2 = error*2;
+
+                        if (xc === xc2 && yc === yc2) {
+                            break;
+                        }
+                        
+                        if (error2 > -dy) {
+                        error -= dy;
+                        xc += sx;
+                        }
+
+                        if (error2 < dx) {
+                        error += dx;
+                        yc += sy;
+                        }
+                    }
+                }
+
+                function DDA(xc, yc, xc2, yc2) {
+                    if(xc2>xc && yc>yc2 || xc2<xc && yc2>yc)puntoPendiente(xc,yc,xc2,yc2);
+                    if (yc > yc2) {
+                        [xc, xc2] = cambiar(xc, xc2);
+                        [yc, yc2] = cambiar(yc, yc2);
+                    }
+                    if (xc == xc2) xc2 = xc + 0.1;
+                    
+                    var dx = xc2 - xc;
+                    var dy = yc2 - yc;
+                    var m = dy / dx;
+                    var x, y;
+
+                    point(xc, yc);
+
+                    if (dx > 0 && m >= 0 && m <= 1) { 
+                        y = yc;
+                    for (x = xc + 1; x <= xc2; x++) {
+                        y += m;
+                        point(x, round(y));
+                    }
+                    }else if (dx > 0 && m > 1) { 
+                        x = xc;
+                        for (y = yc + 1; y <= yc2; y++) {
+                            x += 1 / m;
+                            point(round(x), y);
+                        }
+                    }else if (dx < 0 && m >= -1 && m <= 0) {
+                        y = yc;
+                        for (x = xc - 1; x >= xc2; x--) {
+                        y -= m;
+                        point(x, round(y));
+                        }
+                    }else if (dx < 0 && m < -1) {
+                        x = xc;
+                        for (y = yc + 1; y >= yc2; y--) {
+                            x -= 1 / m;
+                            point(round(x), y);
+                        }
+                    }
+                    point(xc2, yc2);
+                }
+
+                function trazadoDePuntos(xc, yc, x, y) {
+                    point(xc + x, yc + y);
+                    point(xc - x, yc + y);
+                    point(xc + x, yc - y);
+                    point(xc - x, yc - y);
+                    point(xc + y, yc + x);
+                    point(xc - y, yc + x);
+                    point(xc + y, yc - x);
+                    point(xc - y, yc - x);
+                }
+                
+                function cambiar(a, b) {return [b, a]}
+        </script>
+    </body>
+</html>
